@@ -8,11 +8,11 @@ from datetime import datetime
 app = Flask(__name__)
 
 # Configurações da API do ERPNext
-base_url = "http://13.244.142.208"
+base_url = "http://192.168.60.13:8080"
 
 # As suas credenciais de API
-api_key = "0789558443d9687"
-api_secret = "92501dbb7e7b5d8"
+api_key = "528eff3406d6c19"
+api_secret = "197ffe63e0ced95"
 
 # Cabeçalhos para autenticação
 headers = {
@@ -24,7 +24,7 @@ def fetch_facturas():
     url = f'{base_url}/api/resource/Sales Invoice'
     params = {
         'fields': json.dumps(["*"]),  # Adiciona um parâmetro para retornar todos os campos
-        'limit_page_length': 3,  # Limitar o número de resultados para 30
+        'limit_page_length': 20,  # Limitar o número de resultados para 20
         'order_by': 'posting_date desc'  # Ordenar por data de postagem de forma decrescente
     }
     response = requests.get(url, headers=headers, params=params)
@@ -64,6 +64,7 @@ def fetch_item_details(item_name):
         print(f'Error {response.status_code}: {response.text}')
         return {}
 
+
 def generate_excel(data):
     df = pd.DataFrame(data)
     output = BytesIO()
@@ -96,7 +97,7 @@ def get_invoices_excel():
         # Adicionando campos de itens
         items = detailed_invoice.get('items', [])
         total_qty = sum(item.get('qty', 0) for item in items)  # Total de quantidade dos itens
-        total_amount = detailed_invoice.get('total', 0)  # Total da fatura
+        total_amount = detailed_invoice.get('grand_total', 0)  # Total da fatura
         total_taxes = detailed_invoice.get('base_total_taxes_and_charges', 0)  # Total dos impostos
 
         for item in items:
@@ -165,14 +166,14 @@ def get_invoices_excel():
                 "TipoLinha": '',
                 "Seccao": '',
                 "Armazen": item_details.get('warehouse', ''),
-                "MovSTK": 'S',
+                "MovSTK": item_details.get('is_stock_item',''),
                 "FactorConv": 6,
                 "NumLinhaSTKGerada": '',
                 "Data de Saida": detailed_invoice.get('posting_date', ''),
                 "DescontoComercial": 0,
                 "QntFormula": 0,
                 "Comissao": 0,
-                "Lote": '',
+                "Lote": item_details.get('batch_no'),
                 "Preco Liquido": total_amount - total_taxes,
                 "IntrastatValorLiq": 0,
                 "Descricao": item.get('item_name', ''),
@@ -189,7 +190,7 @@ def get_invoices_excel():
                 "IvaNaoDedutivel": 0,
                 "Armazen": item_details.get('warehouse', ''),
                 "TaxaRecargo": 0,
-                "TotalIliquido": total_amount + total_taxes,
+                "TotalIliquido": total_amount,
                 "EstadoOrigem": 'DISP',
                 "CustoMercadoriasMBase": '',
                 "CustoMercadoriasMAlt": '',
