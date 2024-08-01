@@ -20,6 +20,7 @@ headers = {
     'Content-Type': 'application/json'
 }
 
+
 def fetch_facturas():
     url = f'{base_url}/api/resource/Sales Invoice'
     params = {
@@ -37,6 +38,7 @@ def fetch_facturas():
         print(f'Error {response.status_code}: {response.text}')
         return []
 
+
 def fetch_invoice_details(invoice_name):
     url = f'{base_url}/api/resource/Sales Invoice/{invoice_name}'
     response = requests.get(url, headers=headers)
@@ -45,6 +47,7 @@ def fetch_invoice_details(invoice_name):
     else:
         print(f'Error {response.status_code}: {response.text}')
         return {}
+
 
 def fetch_customer_details(customer_name):
     url = f'{base_url}/api/resource/Customer/{customer_name}'
@@ -55,6 +58,7 @@ def fetch_customer_details(customer_name):
         print(f'Error {response.status_code}: {response.text}')
         return {}
 
+
 def fetch_item_details(item_name):
     url = f'{base_url}/api/resource/Item/{item_name}'
     response = requests.get(url, headers=headers)
@@ -64,6 +68,7 @@ def fetch_item_details(item_name):
         print(f'Error {response.status_code}: {response.text}')
         return {}
 
+
 def generate_excel(data):
     df = pd.DataFrame(data)
     output = BytesIO()
@@ -72,10 +77,12 @@ def generate_excel(data):
     output.seek(0)
     return output
 
+
 @app.route('/facturas', methods=['GET'])
 def get_invoices():
     invoices = fetch_facturas()
     return jsonify(invoices)
+
 
 @app.route('/facturas/excel', methods=['GET'])
 def get_invoices_excel():
@@ -208,6 +215,94 @@ def get_invoices_excel():
         f.write(output.getvalue())
 
     return jsonify({"message": f"Arquivo salvo como {file_path} na raiz do projeto"})
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+@app.route('/item/update', methods=['GET'])
+def update_item():
+    # URL base do seu ERPNext
+    base_url = "http://13.244.142.208"
+    endpoint = "/api/resource/Item"
+
+    # Suas credenciais de API
+    api_key = "0789558443d9687"
+    api_secret = "92501dbb7e7b5d8"
+
+    # Headers de autenticação
+    headers = {
+        "Authorization": f"token {api_key}:{api_secret}"
+    }
+
+    # Carregar o último código atualizado
+    try:
+        with open('last_custom_code.txt', 'r') as file:
+            last_code = int(file.read().strip())
+    except FileNotFoundError:
+        last_code = 0
+
+    # Variável para manter o código sequencial
+    code = last_code + 1
+
+    # Contador para limitar o número de atualizações
+    update_limit = 200
+    updates_done = 0
+
+    # Parâmetros da consulta
+    params = {
+        "fields": '["name", "custom_codigo"]',  # Buscar apenas os campos necessários
+        "limit_page_length": update_limit,  # Limitar o número de resultados a 200
+        "order_by": "creation asc"  # Ordenar por data de criação
+    }
+
+    try:
+        # Fazendo a requisição GET para obter a lista de itens com timeout aumentado
+        response = requests.get(base_url + endpoint, headers=headers, params=params, timeout=120)
+        response.raise_for_status()  # Levanta um erro para status HTTP 4xx/5xx
+
+        items = response.json().get('data', [])
+
+        if not items:
+            return jsonify({"message": "Todos os itens já foram atualizados"}), 200
+
+        # Para cada item, atualizar o campo custom_codigo com o código sequencial, se não estiver presente ou for 0
+        for item in items:
+            if updates_done >= update_limit:
+                break
+
+            item_name = item.get('name')
+            current_code = item.get('custom_codigo')
+
+            if current_code in [None, '', 0]:  # Atualizar se custom_codigo estiver ausente, vazio ou igual a 0
+                new_code = str(code).zfill(6)  # Gerar um código de 6 dígitos
+                update_endpoint = f"{base_url}/api/resource/Item/{item_name}"
+                update_data = {
+                    "custom_codigo": new_code
+                }
+
+                try:
+                    update_response = requests.put(update_endpoint, headers=headers, json=update_data, timeout=120)
+                    update_response.raise_for_status()  # Levanta um erro para status HTTP 4xx/5xx
+
+                    print(f"Código {new_code} atualizado para o item {item_name}")
+
+                    # Persistir o código atualizado
+                    with open('last_custom_code.txt', 'w') as file:
+                        file.write(new_code)
+
+                    # Incrementar o código para o próximo item
+                    code += 1
+                    updates_done += 1
+
+                except requests.RequestException as e:
+                    print(f"Erro ao atualizar código para o item {item_name}: {e}")
+
+        return jsonify({"message": f"{updates_done} itens atualizados com sucesso"}), 200
+
+    except requests.RequestException as e:
+        return jsonify({"error": f"Erro ao buscar a lista de itens: {e}"}), 400
 
 
 if __name__ == '__main__':
