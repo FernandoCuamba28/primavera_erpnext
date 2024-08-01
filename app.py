@@ -11,8 +11,8 @@ app = Flask(__name__)
 base_url = "http://192.168.60.13:8080"
 
 # As suas credenciais de API
-api_key = "526c19"
-api_secret = "197"
+api_key = "528eff3406d6c19"
+api_secret = "197ffe63e0ced95"
 
 # Cabeçalhos para autenticação
 headers = {
