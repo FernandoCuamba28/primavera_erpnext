@@ -11,7 +11,7 @@ app = Flask(__name__)
 base_url = "http://192.168.60.13:8080"
 
 # As suas credenciais de API
-api_key = "526c19"
+api_key = "528"
 api_secret = "197"
 
 # Cabeçalhos para autenticação
@@ -25,7 +25,7 @@ def fetch_facturas():
     url = f'{base_url}/api/resource/Sales Invoice'
     params = {
         'fields': json.dumps(["*"]),  # Adiciona um parâmetro para retornar todos os campos
-        'limit_page_length': 20,  # Limitar o número de resultados para 20
+        'limit_page_length': 100,  # Limitar o número de resultados para 20
         'order_by': 'posting_date desc'  # Ordenar por data de postagem de forma decrescente
     }
     response = requests.get(url, headers=headers, params=params)
@@ -172,7 +172,7 @@ def get_invoices_excel():
                 "TipoLinha": '',
                 "Seccao": '',
                 "Armazen": item_details.get('warehouse', ''),
-                "MovSTK": item_details.get('is_stock_item',''),
+                "MovSTK": item_details.get('is_stock_item', ''),
                 "FactorConv": 6,
                 "NumLinhaSTKGerada": '',
                 "Data de Saida": detailed_invoice.get('posting_date', ''),
