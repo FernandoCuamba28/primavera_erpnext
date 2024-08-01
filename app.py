@@ -11,8 +11,9 @@ app = Flask(__name__)
 base_url = "http://192.168.60.13:8080"
 
 # As suas credenciais de API
-api_key = "528"
-api_secret = "197"
+
+api_key = "528eff3406d6c19"
+api_secret = "197ffe63e0ced95"
 
 # Cabeçalhos para autenticação
 headers = {
@@ -23,19 +24,23 @@ headers = {
 
 def fetch_facturas():
     url = f'{base_url}/api/resource/Sales Invoice'
+
+    # Filtros e parâmetros da consulta
     params = {
         'fields': json.dumps(["*"]),  # Adiciona um parâmetro para retornar todos os campos
-        'limit_page_length': 100,  # Limitar o número de resultados para 20
-        'order_by': 'posting_date desc'  # Ordenar por data de postagem de forma decrescente
+        'limit_page_length': 100,  # Limitar o número de resultados
+        'order_by': 'posting_date desc',  # Ordenar por data de postagem de forma decrescente
+        'filters': json.dumps({"posting_date": [">=", "2024-01-01"]})  # Filtro para a partir de 2024
     }
-    response = requests.get(url, headers=headers, params=params)
 
-    if response.status_code == 200:
-        invoices = response.json()['data']
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()  # Levanta um erro para status HTTP 4xx/5xx
+        invoices = response.json().get('data', [])
         print(json.dumps(invoices, indent=4))  # Adicionando uma instrução de impressão para debug
         return invoices
-    else:
-        print(f'Error {response.status_code}: {response.text}')
+    except requests.RequestException as e:
+        print(f'Error: {e}')
         return []
 
 
@@ -91,6 +96,16 @@ def get_invoices_excel():
     # Prepare data for Excel export
     report_data = []
 
+    # Dicionário para tradução de status
+    status_translation = {
+        'Draft': 'Rascunho',
+        'Submitted': 'Submetido',
+        'Cancelled': 'Cancelado',
+        'Paid': 'Pago',
+        'Overdue': 'Vencido',
+        'Partially Paid': 'Parcialmente Pago'
+    }
+
     for invoice in invoices:
         invoice_name = invoice.get('name')
         if not invoice_name:
@@ -105,6 +120,10 @@ def get_invoices_excel():
         total_qty = sum(item.get('qty', 0) for item in items)  # Total de quantidade dos itens
         total_amount = detailed_invoice.get('grand_total', 0)  # Total da fatura
         total_taxes = detailed_invoice.get('base_total_taxes_and_charges', 0)  # Total dos impostos
+        invoice_status = detailed_invoice.get('status', 'Unknown')  # Status da fatura
+
+        # Traduzir o status
+        translated_status = status_translation.get(invoice_status, 'Desconhecido')
 
         for item in items:
             item_name = item.get('item_code')
@@ -201,7 +220,7 @@ def get_invoices_excel():
                 "CustoMercadoriasMBase": '',
                 "CustoMercadoriasMAlt": '',
                 "IdCabecDoc": '',
-                "Estado": 'P',
+                "Estado": translated_status,  # Adiciona o status traduzido
                 "DocImp": 0
             }
 
