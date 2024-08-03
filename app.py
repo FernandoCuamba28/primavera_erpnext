@@ -9,14 +9,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 app = Flask(__name__)
 
 # # Configurações da API do ERPNext
-# base_url = "http://192.168.60.13:8080"
-# api_key = "528eff3406d6c19"
-# api_secret = "197ffe63e0ced95"
+base_url = "http://192.168.60.13:8080"
+api_key = "528eff3406d6c19"
+api_secret = "197ffe63e0ced95"
 
-base_url = "http://13.244.142.208"
-# As suas credenciais de API
-api_key = "0789558443d9687"
-api_secret = "92501dbb7e7b5d8"
+# base_url = "http://13.244.142.208"
+# # As suas credenciais de API
+# api_key = "0789558443d9687"
+# api_secret = "92501dbb7e7b5d8"
 
 headers = {
     'Authorization': f'token {api_key}:{api_secret}',
