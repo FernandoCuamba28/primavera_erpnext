@@ -178,7 +178,9 @@ def fetch_and_process_invoices():
         'Cancelled': 'Cancelado',
         'Paid': 'Pago',
         'Overdue': 'Vencido',
-        'Partially Paid': 'Parcialmente Pago'
+        'Partially Paid': 'Parcialmente Pago',
+        'Unpaid': 'Nao Pago',
+        'Return': 'Nota de Credito'
     }
     for invoice in invoices:
         invoice_name = invoice.get('name')
