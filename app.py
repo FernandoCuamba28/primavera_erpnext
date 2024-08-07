@@ -9,14 +9,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 app = Flask(__name__)
 
 # # Configurações da API do ERPNext
-base_url = "http://192.168.60.13:8080"
-api_key = "528eff3406d6c19"
-api_secret = "197ffe63e0ced95"
+# base_url = "http://192.168.60.13:8080"
+# api_key = "528eff3406d6c19"
+# api_secret = "197ffe63e0ced95"
 
-# base_url = "http://13.244.142.208"
-# # As suas credenciais de API
-# api_key = "0789558443d9687"
-# api_secret = "92501dbb7e7b5d8"
+base_url = "http://13.244.142.208"
+# As suas credenciais de API
+api_key = "0789558443d9687"
+api_secret = "92501dbb7e7b5d8"
 
 headers = {
     'Authorization': f'token {api_key}:{api_secret}',
@@ -299,9 +299,6 @@ def fetch_and_process_invoices():
     print(f"Arquivo salvo como {file_path} na raiz do projeto")
 
 
-
-
-
 # Esta funcao busca a lista de factura de Vendas Pendentes.
 @app.route('/facturas', methods=['GET'])
 def get_invoices():
@@ -526,11 +523,20 @@ def get_all_payments():
             except requests.exceptions.RequestException as payment_error:
                 detailed_payments.append({'id': payment_id, 'error': str(payment_error)})
 
-        # Pega os últimos 20 registros, se necessário
-        last_20_payments = detailed_payments[-50:]
+        # Filtrar pagamentos para o ano de 2024
+        filtered_payments = [
+            payment for payment in detailed_payments
+            if payment.get('posting_date') and datetime.strptime(payment.get('posting_date'), '%Y-%m-%d').year == 2024
+        ]
+
+        # Ordenar os pagamentos filtrados por 'posting_date'
+        filtered_payments.sort(key=lambda x: x.get('posting_date', ''))
+
+        # Pega os últimos 50 registros, se necessário
+        last_50_payments = filtered_payments[-50:]
 
         # Gera o arquivo Excel
-        output = generate_payment_excel(last_20_payments)
+        output = generate_payment_excel(last_50_payments)
         file_path = 'payments.xlsx'
         with open(file_path, 'wb') as f:
             f.write(output.getvalue())
@@ -539,7 +545,6 @@ def get_all_payments():
 
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
-
 
 def fetch_and_save_payments():
     endpoint = "/api/resource/Payment Entry"
@@ -620,14 +625,11 @@ def fetch_and_save_payments():
         print(f"Erro: {str(e)}")
 
 
-
 # Configuração do CronJob
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=fetch_and_process_invoices, trigger="interval", minutes=1) #Gera a factura
-scheduler.add_job(func=fetch_and_save_payments, trigger="interval", minutes=1) #Gera os Recibos
-scheduler.start()
-
-
+# scheduler = BackgroundScheduler()
+# scheduler.add_job(func=fetch_and_process_invoices, trigger="interval", minutes=1)  # Gera a factura
+# scheduler.add_job(func=fetch_and_save_payments, trigger="interval", minutes=1)  # Gera os Recibos
+# scheduler.start()
 
 if __name__ == '__main__':
     # Inicie o Flask app
